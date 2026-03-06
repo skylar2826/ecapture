@@ -524,6 +524,21 @@ int probe_tcp_v4_destroy_sock(struct pt_regs* ctx) {
     return BPF_OK;
 }
 
+SEC("kprobe/tcp_v6_destroy_sock")
+int probe_tcp_v6_destroy_sock(struct pt_regs* ctx) {
+    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+    struct connect_event_t conn;
+
+    __builtin_memset(&conn, 0, sizeof(conn));
+    conn.sock = (u64)sk;
+    conn.is_destroy = 1;
+
+    bpf_perf_event_output(ctx, &connect_events, BPF_F_CURRENT_CPU, &conn,
+                          sizeof(struct connect_event_t));
+
+    return BPF_OK;
+}
+
 
 // int SSL_set_fd(SSL *s, int fd)
 // int SSL_set_rfd(SSL *s, int fd)

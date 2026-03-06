@@ -15,6 +15,9 @@
 #ifndef ECAPTURE_COMMON_H
 #define ECAPTURE_COMMON_H
 
+// Enable debug logging for fd extraction
+#define DEBUG_PRINT 1
+
 #ifdef DEBUG_PRINT
 #define debug_bpf_printk(fmt, ...)                     \
     do {                                               \
