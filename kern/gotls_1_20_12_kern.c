@@ -50,7 +50,7 @@ struct mastersecret_gotls_t {
 
 /////////////////////////BPF MAPS ////////////////////////////////
 
-// bpf map
+// bpf map for Go TLS master secret
 struct {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
     __uint(key_size, sizeof(u32));
@@ -58,13 +58,15 @@ struct {
     __uint(max_entries, 1024);
 } mastersecret_go_events SEC(".maps");
 
+// bpf map for Go TLS plaintext data events (read/write)
 struct {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
     __uint(key_size, sizeof(u32));
     __uint(value_size, sizeof(u32));
     __uint(max_entries, 1024);
-} events SEC(".maps");
+} gotls_events SEC(".maps");  // ← 改名为 gotls_events
 
+// Per-CPU context for Go TLS events
 struct {
     __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
     __type(key, u32);
@@ -216,7 +218,9 @@ static __always_inline int gotls_write(struct pt_regs *ctx, bool is_register_abi
         debug_bpf_printk("gotls_write bpf_probe_read_user_str failed, ret:%d, str:%d\n", ret, str);
         return 0;
     }
-    bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, event, sizeof(struct go_tls_event));
+    
+    // Send to gotls_events map (Go TLS events)
+    bpf_perf_event_output(ctx, &gotls_events, BPF_F_CURRENT_CPU, event, sizeof(struct go_tls_event));
     return 0;
 }
 
@@ -279,7 +283,9 @@ static __always_inline int gotls_read(struct pt_regs *ctx, bool is_register_abi)
         debug_bpf_printk("gotls_text bpf_probe_read_user_str failed, ret:%d, str:%d\n", ret, str);
         return 0;
     }
-    bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, event, sizeof(struct go_tls_event));
+    
+    // Send to gotls_events map (Go TLS events)
+    bpf_perf_event_output(ctx, &gotls_events, BPF_F_CURRENT_CPU, event, sizeof(struct go_tls_event));
     return 0;
 }
 
